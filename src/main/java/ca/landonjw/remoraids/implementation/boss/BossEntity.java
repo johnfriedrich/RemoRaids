@@ -75,6 +75,8 @@ public class BossEntity implements IBossEntity {
 	private BlockPos position;
 	/** Overlay text*/
 	private List<String> overlayText;
+	/** Allow Dynamax */
+	private boolean allowDynamax;
 
 	/**
 	 * Constructor for the boss entity.
@@ -94,6 +96,7 @@ public class BossEntity implements IBossEntity {
 		setEngager();
 		setOverlay();
 		vanishBattleEntity();
+		this.allowDynamax = spawner.allowDynamax();
 
 		BossEntityRegistry.getInstance().register(this);
 		BossBattleRegistry.getInstance().createBossBattle(this);
@@ -141,6 +144,8 @@ public class BossEntity implements IBossEntity {
 	 * Creates the overlay initially
 	 */
 	private void setOverlay() {
+		if (spawner.overlayDisabled())
+			return;
 		overlayText = spawner.getOverlayText();
 		if(overlayText == null)
 			return;
@@ -185,13 +190,13 @@ public class BossEntity implements IBossEntity {
 		Task.builder().execute((task) -> {
 			if (getBattleEntity().isPresent()) {
 				for (EntityPlayer player : world.playerEntities) {
-					if (player.getDistance(getEntity().get()) < 100) {
+					if (player.getDistance(getBattleEntity().get()) < 100) {
 						SPacketDestroyEntities packet = new SPacketDestroyEntities(getBattleEntity().get().getEntityId());
 						((EntityPlayerMP) player).connection.sendPacket(packet);
 					}
 				}
 			} else {
-				if (!getEntity().isPresent()) {
+				if (!getBattleEntity().isPresent()) {
 					task.setExpired();
 				}
 			}
@@ -274,6 +279,16 @@ public class BossEntity implements IBossEntity {
 		 * drop listener to be incapable of cancelling the event.
 		 */
 		Task.builder().execute(() -> BossEntityRegistry.getInstance().deregister(this)).delay(1).iterations(1).build();
+	}
+
+	/**
+	 * Returns if dynamax is allowed in the battle
+	 *
+	 * @return if dynamax is allowed
+	 */
+	@Override
+	public boolean allowDynamax() {
+		return allowDynamax;
 	}
 
 	/** {@inheritDoc} */
